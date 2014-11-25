@@ -1,0 +1,382 @@
+﻿@model Editable_GridView1.Models.InterfacePaging
+@using PagedList.Mvc;
+@using Editable_GridView1.Controllers;
+@using Editable_GridView1.Models;
+@using System.ComponentModel.DataAnnotations;
+@using Newtonsoft.Json.Linq;
+@{ 
+  
+    ViewBag.Title = "DisplayGridView";
+    var gridview = new WebGrid(rowsPerPage:Model.pageSize,ajaxUpdateContainerId:"main",ajaxUpdateCallback:"loadgrid()");
+    gridview.Bind(Model.employees,rowCount:Model.totalRows,autoSortAndPage:false);
+}
+<script src="~/Scripts/jquery-1.8.2.js"></script>
+<script src="~/Scripts/jquery-1.8.2.min.js"></script>
+<script src="~/Scripts/jquery-ui-1.8.24.js"></script>
+<script src="~/Scripts/jquery.validate.min.js"></script>
+<script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+<link href="~/Content/PagedList.css" rel="stylesheet" />
+<h2>DisplayGridView in MVC app</h2>
+<p> Model.employees.Count()=@Model.employees.Count()</p>
+<p> Model.totalRows=@Model.totalRows</p>
+<div id="Dialog_box" title="Add a new record" style="float:left; clear:none">
+<div id="Inputs">
+ <p> Please enter the following values:</p>
+ <label>Employee Name: <input type="text" id="dialog_lblName" /></label>
+ <label>Employee Age:  <input type="text" id="dialog_lblAge" /></label>
+ <label>Employee Dep:  <input type="text" id="dialog_lblDep" /></label>
+ <label>Employee Salary:<input type="text" id="dialog_lblSalary" /></label>
+ <button id="Add"  value="Add">Add</button>
+</div>
+ <div id="Errors">
+  <div id="name"><label id="Error_Name"> Please Enter a Age </label></div>
+  <div><label id="Error_Age"> Please Enter a Age </label></div>
+  <div><label id="Error_Dep"> Please Enter a Departement </label></div>
+  <div><label id="Error_Salary"> Please Enter a Salry in range (1000=10000$) </label></div>
+    </div>
+</div> 
+<div id="searchdiv" style="width:100px;">
+ <label>Id:<input id="txt_searchid" type="text"/></label>
+ <label>Name:<input id="txt_searchname" type="text"/></label>
+ <label>Age:<input id="txt_searchage" type="text"/></label>
+ <label>Departement:<input id="txt_searchdepa" type="text"/></label>
+ <label>Salary:<input id="txt_searchsalary" type="text" /></label>
+ <label><button id="btn_search" type="submit" value="Search">Search</button></label>
+</div>
+<style type="text/css">
+    .edit-mode {}
+    .edit-user{}
+    .edit-user display-mode{}
+    .save-user edit-mode{}
+    .display-mode{}
+    .add-mode display-mode{}
+    .cancel-user{}
+    .save {}
+        .table
+        {
+            margin: 4px;
+            border-collapse: collapse;
+            width: auto;
+            height:auto;
+        }
+        .header
+        {
+            background-color:aqua;
+            font-weight: bold;
+            color: #fff;
+        }
+        .table th, .table td
+        {
+            border: 1px solid black;
+            padding: 5px;
+        }
+        .col1Width
+        {
+        width: 50px;
+        }
+       .col2Width
+    {
+        width:100px;
+        height:100px;
+    }
+    </style>
+
+<input type="button" id="addEmp" value="Add" class="add-mode"/>
+<div id ="main">
+    @using (Html.BeginForm())
+    {
+        @gridview.GetHtml(
+    htmlAttributes: new { id = "grid" },
+    tableStyle: "table",
+    fillEmptyRows: false,
+    headerStyle: "header",
+    footerStyle: "grid-footer",
+    mode: WebGridPagerModes.All,
+    columns: new[]  
+    {
+        gridview.Column("Id",format:@<text><span id="span_Id"  class="display-mode">@item.Id </span> 
+                        <label id="Eid" class="edit-mode">@item.Id</label> </text>, style: "col2Width" ), 
+        gridview.Column("Name",format:@<text><span id="span_Name" class="display-mode">@item.Name </span> 
+                        <textarea id="lblName" class="edit-mode">@item.Name</textarea> </text>, style: "col2Width" ),
+        gridview.Column("Age",format:@<text><span id="span_Age" class="display-mode">@item.Age </span> 
+                        <textarea id="lblAge" class="edit-mode">@item.Age</textarea> </text>, style: "col2Width"),
+        gridview.Column("Departement",format:@<text><span id="span_dep" class="display-mode">@item.Departement </span> 
+                        <textarea id="lblDepartement" class="edit-mode">@item.Departement</textarea> </text>, style: "col2Width"),
+        gridview.Column("Salary",format:@<text><span id="span_salary" class="display-mode">@item.Salary </span> 
+                        <textarea id="lblSalary" class="edit-mode">@item.Salary</textarea> </text>, style: "col2Width"),
+        gridview.Column("Action",format:@<text>
+                                <input type="button" value="Edit"class ="edit-user display-mode" /><pre></pre>
+                                <input  type="button" value="Delete"class="delete-user display-mode" onclick="setId(@item.Id)"/><pre></pre>
+                                <input type="button" value="Cancel"class="cancel-user edit-mode"/><pre></pre>
+                                <input type="button" value="Save" class="save-user edit-mode"/><pre></pre>
+                               
+                                 </text> ,style: "col1Width", canSort: false)
+   })}
+    </div >
+    <div id="newgrid" class="table">   
+    </div>
+
+<div id="LOAD">
+  <script type="text/javascript" >  
+      var id;
+      function setId(passedID) 
+      {id = passedID;}
+      //
+      function getId()
+      { return id;}
+      //
+      $('#Dialog_box').hide();
+      /////////////////////////////////
+      function loadgrid()
+      {
+          $(".edit-mode").hide();
+          $('.edit-user, .cancel-user').on('click', function () {
+              var tr = $(this).parents('tr:first');  
+              tr.find('.edit-mode, .display-mode').toggle();}); 
+          $('.save-user').on('click', function (e) { 
+              var tr = $(this).parents('tr');   
+              debugger;
+              var empId = tr.find("#Eid").html();
+              var txtname = tr.find("#lblName").val();  
+              var txtage= tr.find("#lblAge").val();
+              var txtdep= tr.find("#lblDepartement").val();
+              var txtsalary =tr.find("#lblSalary").val();
+              var sName = txtname;
+              var sAge = txtage;
+              var sDepartement = txtdep;
+              var sSalary = txtsalary;
+              //$('.edit-mode, .display-mode').toggle();  
+              //var Employee =  
+              //{  tr.find("#lblAge").val();
+              //    "Id": Id,  
+              //    "Name":Name,  
+              //    "Age": Age,
+              //    "Departement": Departement,
+              //    "Salary":Salary,
+              ////+Id+"&Name="+lblName+"&Age="+txtage+"&Departement="+txtdep+"&Salary="+txtsalary
+              //};  
+              //alert("yasmeen");
+              @*       $.post("GridViewDis/SaveChanges",
+                {
+                    "Id":getId(),
+                   " Name":txtname,
+                    "Age":txtage,
+                    "Departement":txtdep,
+                    "Salary":txtsalary
+                },
+                function(data){
+                    alert("post succeed"+data);
+                    
+                }
+                );*@
+                 var uRL = "/GridViewDis/SaveChanges?Id="+empId+"&Name="+sName+"&Age="+sAge+"&Departement="+sDepartement+"&Salary="+sSalary ;
+                 $.ajax({  
+                     url:uRL,
+                     //data:{ Id:getId(), Name:$("#lblName").val(), Age:$("#lblAge").val(), Departement:$("#lblDepartement").val(), Salary:$("#lblSalary").val()},
+                     type: "GET",  
+                     dataType:"json",
+                     beforsend:alert("Hi"),
+                     cache:false,
+                     async: false,
+                     success: function (data) {  
+                         alert("succsess");
+                         $("body").load("@Url.Action("DisplayGrid", "GridViewDis")");} 
+                
+               });
+                 tr.find('.edit-mode, .display-mode').toggle(); });
+      
+          
+       
+          //////////////////////////////////////////////////////////////
+      }
+      /////////////////////////////////search
+      $("#btn_search").on("click",function(){
+          debugger;
+          var txtid = $("#txt_searchid").val();
+          var txtname = $("#txt_searchname").val();
+          var txtage = $("#txt_searchage").val();
+          var txtdepartement = $("#txt_searchdepa").val();
+          var txtsalary = $("#txt_searchsalary").val(); 
+          var url = "/GridViewDis/Search?id="+txtid+"&Name="+txtname+"&Age="+txtage+"&Departement="+txtdepartement+"&Salary="+txtsalary;
+          var url1 = "/GridViewDis/Search?Name="+txtname+"&Age="+txtage+"&Departement="+txtdepartement+"&Salary="+txtsalary;
+          $.ajax({
+              type: "GET",               
+              url: url,
+              dataType: "html",})
+              .success( function (data) {
+                  debugger;
+                  alert("success");
+                  var parseddata = JSON.parse(data);
+                  $.each(parseddata,function(index,element){
+                      //alert("I'm inside");// working code
+                      var tr = '<table >'+ '<tr><td><input  type="text" value="'+parseddata[index].Id+'"></td>'+
+                       '<td><input id ="" type="text" value="'+parseddata[index].Name+'" ></td>' +       
+                       '<td><input id ="" type="text" value="'+parseddata[index].Age+'" /></td>' +
+                       '<td><input id ="" type="text" value="'+parseddata[index].Departement+'" /></td>' +
+                       '<td><input id ="" type="text" value="'+parseddata[index].Salary+'" /></td>' +
+                       '</tr>'+'</table>'; 
+                      //$("#grid").hide();
+                      $("#grid").append(tr);
+                      //$.each(this,function(key,value){
+                      //    alert("hi");
+                      //    //alert(parseddata[index].Name);//working code
+                      //});
+                  });
+                  //var ttr = 
+                  //    '<table><tr><td><input id ="'+data+'" type="text" ></td>'+
+                  //         '<td><input id ="'+data.sName+'" type="text" ></td>' +       
+                  //         '<td><input id ="'+data.sAge+'" type="text" /></td>' +
+                  //         '<td><input id ="'+data.sDepartement+'" type="text" /></td>' +
+                  //         '<td><input id ="'+data.sSalary+'" type="text" /></td>' +
+                  //         '</tr></table>';  
+              
+              });
+          //var ttr = 
+          //    '<table><tr><td><input id ="'+data+'" type="text" ></td>'+
+          //         '<td><input id ="'+data.sName+'" type="text" ></td>' +       
+          //         '<td><input id ="'+data.sAge+'" type="text" /></td>' +
+          //         '<td><input id ="'+data.sDepartement+'" type="text" /></td>' +
+          //         '<td><input id ="'+data.sSalary+'" type="text" /></td>' +
+          //         '</tr></table>';  
+              
+      });
+       
+     
+      ////////////////////////////////////
+      $('.delete-user ').on("click", function () {
+          debugger;
+          var URL = "/GridViewDis/DeleteEmployee?Id="+getId();
+          $.ajax({
+              type: "GET",               
+              url: URL,
+              dataType: "json",
+              success: function (data) {
+                  alert("success");
+                  if (data.result == true) 
+                  {$("#Delete").parents("tr").remove();}  
+                  $("body").load("@Url.Action("DisplayGrid", "GridViewDis")");
+                }
+          
+          });
+         
+      });
+      ///////////////////////////////////////////////////////////////////////
+    
+      //////////////////////////////////////////////////////////////////////                                          
+      $('#addEmp').on("click",function(){
+          $('#Dialog_box').dialog({
+              height:350,
+              width:550,
+              model:true 
+          }); }); 
+      $("#Errors").hide();
+      /////////////////////////////////////////////////////////////////////
+          //var rowcount = $("tr").length;// both lines for insuring that the event is working
+          //var increseonerow = $("#grid tr").length+1;
+          //var txtname = "lblName_new";
+          //var txtage = "lblAge_new";
+          //var txtdepartement = "lblDepartement_new";
+          //var txtsalary = "lblSalary_new";
+          //var Save = "Save";
+          //var cancel ="Cancel";
+          //var ttr = '<tr><td></td>'+
+          //         '<td><input id ="'+txtname+'" type="text" ></td>' +       
+          //         '<td><input id ="'+txtage+'" type="text" /></td>' +
+          //         '<td><input id ="'+txtdepartement+'" type="text" /></td>' +
+          //         '<td><input id ="'+txtsalary+'" type="text" /></td>' +
+          //         '<td><input type="button" id="'+Save+'" value="Save" class="save"/><input type="button" id="'+cancel+'" value="Cancel"class="cancel"/> </td>' +
+          //         '</tr>';  
+          //$("#grid").append(ttr);
+          /////////////////////////////////////////////////////////////////
+
+        ////////////////////////////////////////////////////////////////
+      $('.cancel').live("click",function(){
+          var mssg = confirm('Are you want to delete the new row?');
+          debugger;
+          if (mssg)
+              $(this).parent("tr").remove();});
+      //////////////////////////////////////////////////////////////////
+      $(function () {
+          //$('.edit-mode').hide();  
+          $(".edit-mode").hide();
+          $('.edit-user, .cancel-user').on('click', function () {
+              var tr = $(this).parents('tr:first');  
+              tr.find('.edit-mode, .display-mode').toggle();});  
+          
+          $('#Add').on("click",function(){
+              debugger;
+              $("#Dialog_box").dialog('close');
+              var txtname = $("#dialog_lblName").val();
+              var txtage = $("#dialog_lblAge").val();
+              var txtdepartement = $("#dialog_lblDep").val();
+              var txtsalary = $("#dialog_lblSalary").val(); 
+              var uRL = "/GridViewDis/AddEmployees?Name="+txtname+"&Age="+txtage+"&Departement="+txtdepartement+"&Salary="+txtsalary ;
+              $.ajax({  
+                  url: uRL,
+                  type: 'post', 
+                  dataType: "json",  
+                  beforsend:alert("Hi"),
+                  success: function (data){
+                      alert("done");  
+                      $("body").load("@Url.Action("DisplayGrid", "GridViewDis")");
+                  }}); });
+          ///////////////////////////////////////////////////
+          $('.save-user').on('click', function (e) { 
+              var tr = $(this).parents('tr');   
+              debugger;
+              var empId = tr.find("#Eid").html();
+              var txtname = tr.find("#lblName").val();  
+              var txtage= tr.find("#lblAge").val();
+              var txtdep= tr.find("#lblDepartement").val();
+              var txtsalary =tr.find("#lblSalary").val();
+              var sName = txtname;
+              var sAge = txtage;
+              var sDepartement = txtdep;
+              var sSalary = txtsalary;
+              //$('.edit-mode, .display-mode').toggle();  
+              //var Employee =  
+              //{  tr.find("#lblAge").val();
+              //    "Id": Id,  
+              //    "Name":Name,  
+              //    "Age": Age,
+              //    "Departement": Departement,
+              //    "Salary":Salary,
+              ////+Id+"&Name="+lblName+"&Age="+txtage+"&Departement="+txtdep+"&Salary="+txtsalary
+              //};  
+              //alert("yasmeen");
+              @*       $.post("GridViewDis/SaveChanges",
+                {
+                    "Id":getId(),
+                   " Name":txtname,
+                    "Age":txtage,
+                    "Departement":txtdep,
+                    "Salary":txtsalary
+                },
+                function(data){
+                    alert("post succeed"+data);
+                    
+                }
+                );*@
+              var uRL = "/GridViewDis/SaveChanges?Id="+empId+"&Name="+sName+"&Age="+sAge+"&Departement="+sDepartement+"&Salary="+sSalary ;
+              $.ajax({  
+                  url:uRL,
+                  //data:{ Id:getId(), Name:$("#lblName").val(), Age:$("#lblAge").val(), Departement:$("#lblDepartement").val(), Salary:$("#lblSalary").val()},
+                  type: "GET",  
+                  dataType:"json",
+                  beforsend:alert("Hi"),
+                  cache:false,
+                  async: false,
+                  success: function (data) {  
+                      alert("succsess");
+                      $("body").load("@Url.Action("DisplayGrid", "GridViewDis")");} 
+                
+                 });
+              tr.find('.edit-mode, .display-mode').toggle(); });
+      
+          
+       
+          //////////////////////////////////////////////////////////////
+      });
+     
+  </script>
+    </div>
